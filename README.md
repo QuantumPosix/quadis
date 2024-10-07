@@ -2,29 +2,28 @@
 discovery service implementation through various api
 
 Gather Host information - for use in conjunction with performance-redhat/badfish
+    
     :[Pre-Requisites] - You need a way to identify the hosts {{rack} : {rack-height}} - {quads.yml naming scheme}.{fqdn}
-        :We currently use a .csv (provided by our DevOPS or our Hardware VARs) to provide the following things: $HOSTNAME which also includes the following dependencies needed for later on steps with:
+    
+    :We currently use a .csv (provided by your DevOPS or our Hardware VARs) to provide the following things:
+        $HOSTNAME which also includes the following dependencies needed for later on steps with:
             :HOST_IP{public,bmc,mac-address} which will use in quadis redfish|badfish api and cli
                 :Generally what is received resembles rack-rackheight-model-serial,{list of interface_nic[#]},mac_address
                     :get how the .csv comes from pnt in the ticket for the hosts or include a .csv with the minimum required format needed for foreman api install)
-                        continue list format here ->
-
-            * Some new tid-bits of information will have to be entered into foreman or equivalent quads/badfish/redfish endpoint(s)
+                        continue list format here
+             Some new tid-bits of information will have to be entered into foreman or equivalent quads/badfish/redfish endpoint(s)
               Which we currently get from eng-ops (these things like model can now hopefully have a place to be
               scripted to include other modifiers during its creation then pulled into quads via foreman.api or
               have a way for quads to do not worry about host management and then create the necessary steps for a
               successful quads only install (so it generates the flask site, the whole nine yards but commands tied to foreman
-
             :HOST_SERIAL { redfish.api.vendor.{serial_number_endpoint} }
-            \\ this is where scaleup-lab stops in its process it picks it back up here {insert}
-
+            
     :[Pre-Requisites] - Quads instructions link to www.theforeman.org setup - foreman domain,subnet hammer-cli{with-config}
     :uses yaml generated subnets list (foreman_api_subnets)
         :{--provisioner} , usage quads --intitial-setup --provisioner { [options]} .. arg2 arg3...
             :: options -
                 :standalone (self contained quads-only environment)
                 :foreman (uses foreman api and a modified quads.yml to finish setup for the environment)
-
         :{provisoner_options.$option_initial.py()
         :commands used to set a host (or use quads / foreman fqdn name as host) for a list of commands to be run: --gather , --set , --setup, --display , --verify  : is there a way to ping an ip and see if it is a bmc specifically?
             :maybe see if you can do an api call against (setup resource types for [server, network]) to get system resources from ( /redfish/v1/ , http://10.0.0.10/restconf/data/devices/device/system/ (juniper example))
@@ -54,11 +53,11 @@ Gather Host information - for use in conjunction with performance-redhat/badfish
 
                                 : download the csv via google api, name it something for the script to run against without interation
                                     : uses the csv data to initially setup foreman host - requires hammer cli or api interaction with foreman.py to work on quads host
-                                        :awk -F ',' '{print $4, $31}' perf_full.csv | tail -n +2| while read host model ; do echo quads --define-host --host $host --default-cloud cloud01 --host-type baremetal --model $(hammer model list | awk -F '|' '{print $1, $2}' | tail -n +4 | head -n -1 | grep  -w "6" | awk '{print toupper($2)}'); done >> add_quads_hosts
-                                            :   quads --define-host --host aa37-h01-000-r740xd --default-cloud cloud01 --host-type baremetal --model R740XD-CL-G-1
-                                                quads --define-host --host aa37-h03-000-r740xd --default-cloud cloud01 --host-type baremetal --model R740XD-CL-G-1
-                                                quads --define-host --host aa37-h05-000-r740xd --default-cloud cloud01 --host-type baremetal --model R740XD-CL-G-1
-                                                quads --define-host --host aa37-h07-000-r740xd --default-cloud cloud01 --host-type baremetal --model R740XD-CL-G-1
+                                        :awk -F ',' '{print $4, $31}' lab_hosts.csv | tail -n +2| while read host model ; do echo quads --define-host --host $host --default-cloud cloud01 --host-type baremetal --model $(hammer model list | awk -F '|' '{print $1, $2}' | tail -n +4 | head -n -1 | grep  -w "6" | awk '{print toupper($2)}'); done >> add_quads_hosts
+                                            :   quads --define-host --host r1-h01-000-r740xd --default-cloud cloud01 --host-type baremetal --model R740XD-CL-G-1
+                                                quads --define-host --host r1-h03-000-r740xd --default-cloud cloud01 --host-type baremetal --model R740XD-CL-G-1
+                                                quads --define-host --host r1-h05-000-r740xd --default-cloud cloud01 --host-type baremetal --model R740XD-CL-G-1
+                                                quads --define-host --host r1-h07-000-r740xd --default-cloud cloud01 --host-type baremetal --model R740XD-CL-G-1
 
                             :host setup checklist
                                 :determine and sets {host}.{type} {host}.{vendor} and {host}.{model} for correct redfish endpoints
@@ -74,7 +73,7 @@ Gather Host information - for use in conjunction with performance-redhat/badfish
                                         :creates cloud
                                         :starts creation of new interface/vlan configurations for switch
                                     :define-host - uses info to perform adding hosts to quads
-                                        :quads --define-host --host {host}.{{foreman or quads}.domain}rdu3.labs.perfscale.redhat.com --default-cloud {default-cloud} --host-type {type} --model $model
+                                        :quads --define-host --host {host}.{{foreman or quads}.domain}.{domain} --default-cloud {default-cloud} --host-type {type} --model $model
                                         :define-interface - also adds in interfaces by scanning {redfishendpoint.slot{list of pcie slots vendor/model} and matching to NIC models or --vendor
                                                 :uses generate-host-interfaces.py to pull per host
                                                 quads --host {host} --add-interface --interface-name em{i} --interface-mac {em_mac} --interface-switch-ip {em_switch} --interface-port {em_port} --interface-vendor intel --interface-speed {em_speed}
@@ -84,10 +83,10 @@ Gather Host information - for use in conjunction with performance-redhat/badfish
 
                                 :Foreman - we may have to add --provisioner {quads,foreman} also allows other custom provisioning options for those that want to adopt it to their own provisioning backend.
                                     :Intial setup
-                                        :cat ~/utility/hosts/perf_full.csv | while read hostname hip hmac mip mmac model \\
-                                        do hammer host create --name=$hostname --hostgroup=available --model-id=$model --partition-table-id=125 --puppet-environment-id=2 --location-id=2 --organization-id=1 \\
+                                        :cat ~/utility/hosts/lab_host.csv | while read hostname hip hmac mip mmac model \\
+                                        do hammer host create --name=$hostname --hostgroup=available --model-id=$model --partition-table-id=### --puppet-environment-id=# --location-id=# --organization-id=# \\
                                         --interface=\"type=interface,mac=$hmac,identifier=eno1,name=$hostname,ip=$hip,managed=true,primary=true,provision=true,virtual=false\" \\
-                                        --interface=\"type=bmc,provider=ipmi,mac=$mmac,identifier=mgmt,name=mgmt-$hostname,ip=$mip,subnet_id=1,domain_id=1,managed=true,primary=false,provision=false,virtual=false,username=root,password=password"\
+                                        --interface=\"type=bmc,provider=ipmi,mac=$mmac,identifier=mgmt,name=mgmt-$hostname,ip=$mip,subnet_id=1,domain_id=1,managed=true,primary=false,provision=false,virtual=false,username=user,password=password"\
 
                                     :Setup the following based on entries
                                         :hostname - set via csv column with domain attached
